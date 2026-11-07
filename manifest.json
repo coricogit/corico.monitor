@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "corico.monitor",
+  "name": "Display",
+  "version": "1.0.0",
+  "author": "corico",
+  "description": "Per-monitor orientation, refresh rate, brightness and scale, text size, and drag-and-drop arrangement",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Display",
+    "description": "Per-monitor orientation, refresh rate, brightness and scale, text size, and drag-and-drop arrangement",
+    "category": "System",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.monitor"
+  }
+}

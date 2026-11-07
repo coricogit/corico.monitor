@@ -1,0 +1,22 @@
+{
+  "title": "Pantalla",
+  "arrangement": "DISPOSICIÓN",
+  "arrangement.hint": "Haz clic en un monitor para elegirlo y arrástralo para moverlo",
+  "orientation": "ORIENTACIÓN",
+  "orientation.horizontal": "Horizontal",
+  "orientation.verticalRight": "Vertical 90°",
+  "orientation.verticalLeft": "Vertical 270°",
+  "refresh": "FRECUENCIA (HZ)",
+  "brightness": "BRILLO",
+  "brightness.unavailable": "No disponible en este monitor",
+  "textSize": "TAMAÑO DEL TEXTO",
+  "textSize.everywhere": "Todos los monitores",
+  "scale": "ESCALADO",
+  "displays": "MONITORES",
+  "displays.focused": "%1 (enfocado)",
+  "trial.prompt": "¿Mantener %1 Hz?",
+  "trial.countdown": "Se revierte en %1 s",
+  "trial.keep": "Mantener",
+  "trial.revert": "Revertir",
+  "trial.reverted": "Frecuencia restaurada: el cambio no se confirmó"
+}

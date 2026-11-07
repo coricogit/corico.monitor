@@ -1,0 +1,22 @@
+{
+  "title": "Display",
+  "arrangement": "ARRANGEMENT",
+  "arrangement.hint": "Click a monitor to select it, drag it to move it",
+  "orientation": "ORIENTATION",
+  "orientation.horizontal": "Horizontal",
+  "orientation.verticalRight": "Vertical 90°",
+  "orientation.verticalLeft": "Vertical 270°",
+  "refresh": "REFRESH RATE (HZ)",
+  "brightness": "BRIGHTNESS",
+  "brightness.unavailable": "Not available on this monitor",
+  "textSize": "TEXT SIZE",
+  "textSize.everywhere": "All monitors",
+  "scale": "SCALE",
+  "displays": "DISPLAYS",
+  "displays.focused": "%1 (focused)",
+  "trial.prompt": "Keep %1 Hz?",
+  "trial.countdown": "Going back in %1 s",
+  "trial.keep": "Keep",
+  "trial.revert": "Revert",
+  "trial.reverted": "Refresh rate restored: the change wasn't confirmed"
+}
