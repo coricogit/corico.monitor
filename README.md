@@ -21,16 +21,38 @@ The panel open on the desktop:
 
 ![The display panel open beside the desktop](screenshots/desktop.png)
 
+## Requirements
+
+- Omarchy 4.5 or later, on Hyprland with its Lua config
+- Python 3, used by `displayctl.py`
+- For brightness on external monitors, DDC/CI turned on in the monitor's menu.
+  Omarchy's `omarchy-brightness-display` does the work, and it needs `ddcutil`
+  and `brightnessctl`.
+
 ## Install
 
 ```bash
-git clone <this repo> ~/.config/omarchy/plugins/corico.monitor
-omarchy plugin enable corico.monitor
+omarchy plugin add https://github.com/coricogit/corico.monitor --enable
 omarchy plugin disable omarchy.monitor
 omarchy restart shell
 ```
 
-The panel opens from its bar icon or with `SUPER+CTRL+D`.
+This panel replaces the stock `omarchy.monitor` panel, so keep the stock one
+disabled while this one is on. The panel opens from its bar icon or with
+`SUPER+CTRL+D`.
+
+The panel only changes `~/.config/hypr/monitors.lua` when you change a setting
+in it. Refresh rate changes revert after 15 seconds unless you confirm them.
+
+## Remove
+
+```bash
+omarchy plugin remove corico.monitor
+omarchy plugin enable omarchy.monitor
+omarchy restart shell
+```
+
+Your monitor rules stay in `~/.config/hypr/monitors.lua`.
 
 ## Tests
 
