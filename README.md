@@ -26,8 +26,8 @@ The panel open on the desktop:
 - Omarchy 4.5 or later, on Hyprland with its Lua config
 - Python 3, used by `displayctl.py`
 - For brightness on external monitors, DDC/CI turned on in the monitor's menu.
-  Omarchy's `omarchy-brightness-display` does the work, and it needs `ddcutil`
-  and `brightnessctl`.
+  Omarchy's `omarchy-brightness-display` does the work, so there's nothing extra
+  to install.
 
 ## Install
 
