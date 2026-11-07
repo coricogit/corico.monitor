@@ -13,6 +13,14 @@ each monitor:
 
 Settings persist as one-line rules in `~/.config/hypr/monitors.lua`.
 
+## Screenshots
+
+<img src="screenshots/panel.png" alt="The display panel" width="320">
+
+The panel open on the desktop:
+
+![The display panel open beside the desktop](screenshots/desktop.png)
+
 ## Install
 
 ```bash
