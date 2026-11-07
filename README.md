@@ -38,3 +38,7 @@ The panel opens from its bar icon or with `SUPER+CTRL+D`.
 node --test tests/
 python3 tests/test_displayctl.py
 ```
+
+## License
+
+MIT, the same license as Omarchy, which this panel is based on. See [LICENSE](LICENSE).
