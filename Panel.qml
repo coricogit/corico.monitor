@@ -61,6 +61,7 @@ Panel {
   readonly property var orientations: [
     { transform: 0, label: strings.t("orientation.horizontal") },
     { transform: 1, label: strings.t("orientation.verticalRight") },
+    { transform: 2, label: strings.t("orientation.flipped") },
     { transform: 3, label: strings.t("orientation.verticalLeft") }
   ]
   readonly property var refreshRates: Model.refreshRates(selectedDisplay)
