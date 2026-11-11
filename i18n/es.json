@@ -5,6 +5,7 @@
   "orientation": "ORIENTACIÓN",
   "orientation.horizontal": "Horizontal",
   "orientation.verticalRight": "Vertical 90°",
+  "orientation.flipped": "Horizontal 180°",
   "orientation.verticalLeft": "Vertical 270°",
   "refresh": "FRECUENCIA (HZ)",
   "brightness": "BRILLO",

@@ -4,7 +4,7 @@ An Omarchy shell bar panel, based on the stock `omarchy.monitor`, for setting up
 each monitor:
 
 - Drag-and-drop monitor arrangement
-- Orientation (horizontal or vertical, either way round)
+- Orientation (horizontal, upside down, or vertical either way round)
 - Refresh rate, from the modes the monitor offers, with a 15-second automatic
   revert unless confirmed
 - Brightness per monitor over DDC/CI
