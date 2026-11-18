@@ -153,19 +153,99 @@ def update_rules(text, targets, gdk_scale=None):
     return result
 
 
+# The rest of the session follows each monitor's orientation through a block
+# this panel owns in monitors.lua: workspace rules that stack windows top to
+# bottom on a vertical monitor, and the transform of a tablet or touchscreen
+# bound to a rotated one. The block is rewritten whole on every save.
+BLOCK_START = "-- corico.monitor: orientation (managed by the Display panel, don't edit)"
+BLOCK_END = "-- end corico.monitor"
+INPUT_KINDS = ("tablet", "touchdevice")
+
+
+def is_vertical(transform):
+    return transform % 2 == 1
+
+
+def orientation_block(targets, inputs):
+    """The managed lines for these monitors, or [] when nothing needs adapting.
+
+    `inputs` maps "tablet"/"touchdevice" to the monitor each is bound to.
+    """
+    transforms = {t["name"]: t["transform"] for t in targets}
+    lines = [
+        f'hl.workspace_rule({{ workspace = "m[{t["name"]}]", '
+        'layout_opts = { orientation = "top", direction = "down" } })'
+        for t in targets if is_vertical(t["transform"])]
+    for kind in INPUT_KINDS:
+        transform = transforms.get(inputs.get(kind, ""), 0)
+        if transform:
+            lines.append(f"hl.config({{ input = {{ {kind} = {{ transform = {transform} }} }} }})")
+    return [BLOCK_START, *lines, BLOCK_END] if lines else []
+
+
+def update_orientation_block(text, block):
+    """Return monitors.lua with the managed block replaced, added or removed."""
+    lines = text.split("\n")
+    start = lines.index(BLOCK_START) if BLOCK_START in lines else -1
+    if start >= 0 and BLOCK_END in lines[start:]:
+        del lines[start:lines.index(BLOCK_END, start) + 1]
+        at = start
+    else:
+        rules = [i for i, line in enumerate(lines) if line.startswith("hl.monitor(")]
+        at = rules[-1] + 1 if rules else len(lines)
+    lines[at:at] = block
+    return "\n".join(lines)
+
+
+def bound_inputs():
+    """The monitor each input kind is bound to in Hyprland, when it names one."""
+    inputs = {}
+    for kind in INPUT_KINDS:
+        try:
+            value = json.loads(hyprctl("getoption", f"input:{kind}:output", "-j")).get("str", "")
+        except (subprocess.SubprocessError, OSError, ValueError):
+            continue
+        if NAME_RE.match(value):
+            inputs[kind] = value
+    return inputs
+
+
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def vertical_backgrounds_dir():
+    """Where VerticalBackground.qml looks for portrait wallpapers for the theme."""
+    state = Path.home() / ".local/state/omarchy/current/theme.name"
+    try:
+        theme = state.read_text().strip()
+    except OSError:
+        theme = ""
+    return Path.home() / ".config/omarchy/backgrounds" / theme / "vertical"
+
+
+def vertical_images(folder):
+    try:
+        return sorted(p for p in folder.iterdir()
+                      if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES)
+    except OSError:
+        return []
+
+
 def gdk_scale_for(targets):
     # Same rule as omarchy-hyprland-monitor-scaling: GDK_SCALE is session-wide
     # and whole-numbered, so it follows the lowest monitor scale.
     return max(1, math.floor(min(t["scale"] for t in targets) + 0.5))
 
 
-def persist(targets, previous):
+def persist(targets, previous, inputs=None):
     path = Path(os.path.realpath(monitors_lua()))
     before = {m["name"]: m["scale"] for m in previous}
     scale_changed = any(abs(before.get(t["name"], t["scale"]) - t["scale"]) >= 0.001
                         for t in targets)
     text = path.read_text()
     updated = update_rules(text, targets, gdk_scale_for(targets) if scale_changed else None)
+    block = orientation_block(targets, bound_inputs() if inputs is None else inputs)
+    updated = update_orientation_block(updated, block)
     if updated == text:
         return
     # Hyprland reloads on every write, so swap the whole file in at once.
@@ -187,8 +267,13 @@ def cmd_state():
             "enabled": not monitor.get("disabled"),
             "availableModes": monitor.get("availableModes", []),
         })
+    folder = vertical_backgrounds_dir()
     print(json.dumps({"monitors": monitors,
-                      "trialDeadline": trial["deadline"] if trial else 0}))
+                      "trialDeadline": trial["deadline"] if trial else 0,
+                      "verticalBackgrounds": {
+                          "folder": str(folder).replace(str(Path.home()), "~", 1),
+                          "count": len(vertical_images(folder)),
+                      }}))
 
 
 def read_brightness(name):
