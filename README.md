@@ -15,7 +15,7 @@ Settings persist as one-line rules in `~/.config/hypr/monitors.lua`.
 
 ## Screenshots
 
-<img src="screenshots/panel.png" alt="The display panel" width="320">
+<img src="screenshots/panel.png" alt="The display panel" width="640">
 
 ## Requirements
 
