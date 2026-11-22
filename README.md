@@ -40,6 +40,25 @@ disabled while this one is on. The panel opens from its bar icon or with
 The panel only changes `~/.config/hypr/monitors.lua` when you change a setting
 in it. Refresh rate changes revert after 15 seconds unless you confirm them.
 
+## Login screen
+
+The lock screen follows the panel on its own, since it runs inside your
+Hyprland session. The login screen (SDDM) starts its own Hyprland and ignores
+`monitors.lua`, so a rotated monitor shows the login screen sideways. To make it
+follow the panel too (rotation, position, refresh rate and scale):
+
+```bash
+~/.config/omarchy/plugins/corico.monitor/greeter/install.sh
+```
+
+It asks for your password once. It adds `/etc/sddm/corico-hyprland.lua`, which
+loads Omarchy's greeter config and then your layout, and points SDDM at it in
+`/etc/sddm.conf.d/20-corico-monitor.conf`. From then on, every change you keep
+in the panel is also written to `/var/lib/corico-monitor/greeter-monitors`. The
+login screen reads that file as plain data (`NAME WxH@RATE X Y SCALE
+TRANSFORM` per line) and ignores any line that doesn't match. Undo it with
+`greeter/install.sh --uninstall`.
+
 ## Remove
 
 ```bash

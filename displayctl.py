@@ -34,6 +34,11 @@ def monitors_lua():
                                Path.home() / ".config/hypr/monitors.lua"))
 
 
+def greeter_layout():
+    return Path(os.environ.get("DISPLAYCTL_GREETER_LAYOUT",
+                               "/var/lib/corico-monitor/greeter-monitors"))
+
+
 def trial_path():
     return Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "corico-monitor-trial.json"
 
@@ -176,6 +181,43 @@ def persist(targets, previous):
     os.replace(temp, path)
 
 
+def greeter_line(monitor):
+    """One line of the login screen layout: NAME WxH@RATE X Y SCALE TRANSFORM."""
+    return (f'{monitor["name"]} {int(monitor["width"])}x{int(monitor["height"])}'
+            f'@{float(monitor["refreshRate"]):.2f} {int(monitor["x"])} {int(monitor["y"])}'
+            f' {float(monitor["scale"]):g} {int(monitor["transform"]) & 7}')
+
+
+def sync_greeter(targets=(), live=None):
+    """Mirror the session layout to the login screen, if greeter/install.sh ran.
+
+    The greeter's Hyprland (greeter/hyprland.lua) reads this file as data, so a
+    rotated monitor is rotated on the login screen too.
+    """
+    path = greeter_layout()
+    if not path.parent.is_dir() or not os.access(path.parent, os.W_OK):
+        return
+    if live is None:
+        live = live_monitors()
+    chosen = {t["name"]: t for t in targets}
+    lines = []
+    for monitor in live:
+        if monitor.get("disabled"):
+            continue
+        merged = {**snapshot(monitor), **chosen.get(monitor["name"], {})}
+        if NAME_RE.match(merged["name"]):
+            lines.append(greeter_line(merged))
+    fd, temp = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".")
+    with os.fdopen(fd, "w") as handle:
+        handle.write("\n".join(lines) + "\n")
+    os.chmod(temp, 0o644)
+    os.replace(temp, path)
+
+
+def cmd_sync_greeter():
+    sync_greeter()
+
+
 def cmd_state():
     trial = load_trial()
     monitors = []
@@ -216,6 +258,7 @@ def cmd_apply(raw):
     if not payload.get("trial"):
         apply_live(targets, live)
         persist(targets, live)
+        sync_greeter(targets, live)
         return
 
     if load_trial():
@@ -244,6 +287,7 @@ def cmd_keep():
     if trial:
         trial_path().unlink(missing_ok=True)
         persist(trial["targets"], trial["previous"])
+        sync_greeter(trial["targets"])
 
 
 def restore(trial):
@@ -270,7 +314,8 @@ def cmd_rollback(token):
 
 
 COMMANDS = {"state": cmd_state, "brightness": cmd_brightness, "apply": cmd_apply,
-            "keep": cmd_keep, "revert": cmd_revert, "rollback": cmd_rollback}
+            "keep": cmd_keep, "revert": cmd_revert, "rollback": cmd_rollback,
+            "sync-greeter": cmd_sync_greeter}
 
 if __name__ == "__main__":
     try:

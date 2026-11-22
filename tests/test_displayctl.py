@@ -67,5 +67,52 @@ class Validate(unittest.TestCase):
                 d.validate({**TARGET, "scale": scale}, LIVE)
 
 
+class Greeter(unittest.TestCase):
+    LIVE = [
+        {"name": "DP-1", "width": 1920, "height": 1080, "refreshRate": 165.003,
+         "x": 0, "y": 120, "scale": 1.0, "transform": 0},
+        {"name": "DP-3", "width": 1920, "height": 1200, "refreshRate": 59.95,
+         "x": 1920, "y": 0, "scale": 1.0, "transform": 0},
+        {"name": "HDMI-A-1", "width": 1, "height": 1, "refreshRate": 60,
+         "x": 0, "y": 0, "scale": 1.0, "transform": 0, "disabled": True},
+    ]
+
+    def sync(self, targets=()):
+        import os, tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "greeter-monitors"
+            os.environ["DISPLAYCTL_GREETER_LAYOUT"] = str(path)
+            try:
+                d.sync_greeter(targets, self.LIVE)
+                return path.read_text()
+            finally:
+                del os.environ["DISPLAYCTL_GREETER_LAYOUT"]
+
+    def test_writes_live_layout_and_skips_disabled(self):
+        self.assertEqual(self.sync(),
+                         "DP-1 1920x1080@165.00 0 120 1 0\n"
+                         "DP-3 1920x1200@59.95 1920 0 1 0\n")
+
+    def test_rotation_from_targets_wins(self):
+        rotated = {**self.LIVE[1], "transform": 1, "x": 1920, "y": 0}
+        self.assertIn("DP-3 1920x1200@59.95 1920 0 1 1\n", self.sync([rotated]))
+
+    def test_drops_names_that_could_break_the_line(self):
+        live = [{**self.LIVE[0], "name": "DP-1 0x0@60 0 0 1 0\nX"}]
+        self.LIVE, saved = live, self.LIVE
+        try:
+            self.assertEqual(self.sync(), "\n")
+        finally:
+            self.LIVE = saved
+
+    def test_skips_when_not_installed(self):
+        import os
+        os.environ["DISPLAYCTL_GREETER_LAYOUT"] = "/nonexistent-dir/greeter-monitors"
+        try:
+            d.sync_greeter([], self.LIVE)  # no error, nothing written
+        finally:
+            del os.environ["DISPLAYCTL_GREETER_LAYOUT"]
+
+
 if __name__ == "__main__":
     unittest.main()
