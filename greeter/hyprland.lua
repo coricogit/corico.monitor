@@ -6,9 +6,13 @@
 -- adds one hl.monitor rule per line of the layout file the panel writes.
 --
 -- The layout file is data, never code: each line is
---   NAME WIDTHxHEIGHT@RATE X Y SCALE TRANSFORM
+--   NAME WIDTHxHEIGHT@RATE X Y SCALE TRANSFORM [DESCRIPTION]
 -- and anything that doesn't match exactly is ignored. A missing or broken file
--- leaves the stock greeter as it was.
+-- leaves the stock greeter as it was. With a description the rule names the
+-- monitor by it, since connector names can move between monitors at boot.
+--
+-- corico-monitor-layout: 2 (displayctl.py writes descriptions only when it
+-- finds this marker in the installed copy, so an older copy keeps working.)
 
 dofile("/usr/share/sddm/hyprland.lua")
 
@@ -26,12 +30,14 @@ local function apply_layout()
     if count > MAX_LINES then
       break
     end
-    local name, width, height, rate, x, y, scale, transform = line:match(
-      "^([%w%._%-]+) (%d+)x(%d+)@(%d+%.?%d*) (%-?%d+) (%-?%d+) (%d+%.?%d*) ([0-7])$")
+    local name, width, height, rate, x, y, scale, transform, rest = line:match(
+      "^([%w%._%-]+) (%d+)x(%d+)@(%d+%.?%d*) (%-?%d+) (%-?%d+) (%d+%.?%d*) ([0-7])(.*)$")
+    local desc = rest and rest:match("^ ([^%c\"\\]+)$")
     local s = tonumber(scale)
-    if name and #name <= 64 and s and s >= 0.25 and s <= 4 then
+    if name and #name <= 64 and s and s >= 0.25 and s <= 4
+        and (rest == "" or (desc and #desc <= 128)) then
       hl.monitor({
-        output = name,
+        output = desc and ("desc:" .. desc) or name,
         mode = width .. "x" .. height .. "@" .. rate,
         position = x .. "x" .. y,
         scale = s,

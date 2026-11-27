@@ -10,8 +10,17 @@ each monitor:
 - Brightness per monitor over DDC/CI
 - Scale per monitor
 - Text size for the whole desktop
+- Settings that stay with each monitor, even when its connector name changes
+- Login screen turned the same way as your monitors, with an optional one-time
+  install
 
-Settings persist as one-line rules in `~/.config/hypr/monitors.lua`.
+Settings persist as one-line rules in `~/.config/hypr/monitors.lua`, one per
+monitor. Rules name each monitor by its description (make, model and serial),
+such as `desc:BNQ BenQ EX240N ETT3R00580SL0`, not by its connector: connector
+names like `DP-1` can move to another monitor after a reboot or a replug. An
+older rule by connector name is folded into the description rule the next time
+you change that monitor. Twin monitors that report no serial stay named by
+connector, since their descriptions can't tell them apart.
 
 ## Screenshots
 
@@ -56,7 +65,10 @@ loads Omarchy's greeter config and then your layout, and points SDDM at it in
 `/etc/sddm.conf.d/20-corico-monitor.conf`. From then on, every change you keep
 in the panel is also written to `/var/lib/corico-monitor/greeter-monitors`. The
 login screen reads that file as plain data (`NAME WxH@RATE X Y SCALE
-TRANSFORM` per line) and ignores any line that doesn't match. Undo it with
+TRANSFORM [DESCRIPTION]` per line) and ignores any line that doesn't match.
+With a description it names the monitor by it, like the session rules do. If
+you installed it before 1.2.0, run `install.sh` again to get that; until then
+the panel keeps writing the older format, which still works. Undo it with
 `greeter/install.sh --uninstall`.
 
 ## Remove
