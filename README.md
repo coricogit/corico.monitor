@@ -11,8 +11,17 @@ each monitor:
 - Brightness per monitor over DDC/CI
 - Scale per monitor
 - Text size for the whole desktop
+- Settings that stay with each monitor, even when its connector name changes
+- Login screen turned the same way as your monitors, with an optional one-time
+  install
 
-Settings persist as one-line rules in `~/.config/hypr/monitors.lua`.
+Settings persist as one-line rules in `~/.config/hypr/monitors.lua`, one per
+monitor. Rules name each monitor by its description (make, model and serial),
+such as `desc:BNQ BenQ EX240N ETT3R00580SL0`, not by its connector: connector
+names like `DP-1` can move to another monitor after a reboot or a replug. An
+older rule by connector name is folded into the description rule the next time
+you change that monitor. Twin monitors that report no serial stay named by
+connector, since their descriptions can't tell them apart.
 
 ## Orientation follows the system
 
@@ -45,7 +54,7 @@ the console can only be turned for every monitor at once.
 
 ## Screenshots
 
-<img src="screenshots/panel.png" alt="The display panel" width="320">
+<img src="screenshots/panel.png" alt="The display panel" width="640">
 
 ## Requirements
 
@@ -69,6 +78,28 @@ disabled while this one is on. The panel opens from its bar icon or with
 
 The panel only changes `~/.config/hypr/monitors.lua` when you change a setting
 in it. Refresh rate changes revert after 15 seconds unless you confirm them.
+
+## Login screen
+
+The lock screen follows the panel on its own, since it runs inside your
+Hyprland session. The login screen (SDDM) starts its own Hyprland and ignores
+`monitors.lua`, so a rotated monitor shows the login screen sideways. To make it
+follow the panel too (rotation, position, refresh rate and scale):
+
+```bash
+~/.config/omarchy/plugins/corico.monitor/greeter/install.sh
+```
+
+It asks for your password once. It adds `/etc/sddm/corico-hyprland.lua`, which
+loads Omarchy's greeter config and then your layout, and points SDDM at it in
+`/etc/sddm.conf.d/20-corico-monitor.conf`. From then on, every change you keep
+in the panel is also written to `/var/lib/corico-monitor/greeter-monitors`. The
+login screen reads that file as plain data (`NAME WxH@RATE X Y SCALE
+TRANSFORM [DESCRIPTION]` per line) and ignores any line that doesn't match.
+With a description it names the monitor by it, like the session rules do. If
+you installed it before 1.2.0, run `install.sh` again to get that; until then
+the panel keeps writing the older format, which still works. Undo it with
+`greeter/install.sh --uninstall`.
 
 ## Remove
 
