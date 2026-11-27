@@ -10,6 +10,9 @@ each monitor:
 - Brightness per monitor over DDC/CI
 - Scale per monitor
 - Text size for the whole desktop
+- Settings that stay with each monitor, even when its connector name changes
+- Login screen and boot screens (disk unlock prompt, Plymouth) turned the same
+  way as your monitors, with an optional one-time install
 
 Settings persist as one-line rules in `~/.config/hypr/monitors.lua`, one per
 monitor. Rules name each monitor by its description (make, model and serial),
