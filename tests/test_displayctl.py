@@ -49,6 +49,62 @@ class Rules(unittest.TestCase):
         self.assertEqual(d.gdk_scale_for([TARGET, {**TARGET, "scale": 2}]), 1)
 
 
+BENQ = "BNQ BenQ EX240N ETT3R00580SL0"
+HP = "Hewlett Packard HP Z24i CNK4490MRG"
+NAMED = {**TARGET, "description": BENQ}
+DESC_RULE = ('hl.monitor({ output = "desc:' + BENQ + '", mode = "1920x1080@165.00", '
+             'position = "0x0", scale = 1.25, transform = 1 })')
+
+
+class RulesByDescription(unittest.TestCase):
+    def test_writes_rule_by_description(self):
+        self.assertEqual(d.update_rules(STOCK, [NAMED]).split("\n")[4], DESC_RULE)
+
+    def test_updates_existing_description_rule(self):
+        once = d.update_rules(STOCK, [NAMED])
+        twice = d.update_rules(once, [{**NAMED, "name": "DP-3", "x": 1080}])
+        self.assertEqual(twice.count('output = "desc:'), 1)
+        self.assertIn('position = "1080x0"', twice)
+        self.assertNotIn('output = "DP-3"', twice)
+
+    def test_folds_connector_rule_into_description_rule(self):
+        text = STOCK + '\nhl.monitor({ output = "DP-1", mode = "preferred", vrr = 1 })  -- desk'
+        result = d.update_rules(text, [NAMED])
+        rules = [l for l in result.split("\n") if l.startswith("hl.monitor({ output = \"desc:")]
+        self.assertEqual(len(rules), 1)
+        self.assertIn("vrr = 1", rules[0])
+        self.assertTrue(rules[0].endswith("-- desk"))
+        self.assertNotIn('output = "DP-1", mode = "preferred"', result)
+
+    def test_swapped_connectors_keep_each_monitor_its_rule(self):
+        # The BenQ was DP-3 last boot and is DP-1 now; the HP moved to DP-3.
+        text = STOCK + "\n" + "\n".join([
+            'hl.monitor({ output = "desc:' + BENQ + '", mode = "1920x1080@165.00", position = "0x0", scale = 1, transform = 0 })',
+            'hl.monitor({ output = "desc:' + HP + '", mode = "1920x1200@59.95", position = "1920x0", scale = 1, transform = 0 })'])
+        hp = {**TARGET, "name": "DP-3", "description": HP, "width": 1920, "height": 1200,
+              "refreshRate": 59.95, "x": 1920, "scale": 1, "transform": 1}
+        result = d.update_rules(text, [hp])
+        self.assertIn('output = "desc:' + BENQ + '", mode = "1920x1080@165.00", position = "0x0", '
+                      'scale = 1, transform = 0', result)
+        self.assertIn('output = "desc:' + HP + '", mode = "1920x1200@59.95", position = "1920x0", '
+                      'scale = 1, transform = 1', result)
+        self.assertFalse(any(l.startswith('hl.monitor({ output = "DP-') for l in result.split("\n")))
+
+    def test_falls_back_to_connector_without_description(self):
+        self.assertIn('output = "DP-1"', d.update_rules(STOCK, [TARGET]))
+        bad = {**TARGET, "description": 'X" }) os.execute("x") --'}
+        self.assertIn('output = "DP-1"', d.update_rules(STOCK, [bad]))
+
+    def test_validate_picks_up_description(self):
+        live = [{**LIVE[0], "description": BENQ}]
+        self.assertEqual(d.validate(TARGET, live)["description"], BENQ)
+
+    def test_twins_without_serial_stay_on_connectors(self):
+        twin = {**LIVE[0], "description": "ACME Panel"}
+        live = [twin, {**twin, "name": "DP-2"}]
+        self.assertEqual(d.validate(TARGET, live)["description"], "")
+
+
 class Validate(unittest.TestCase):
     def test_accepts_offered_mode(self):
         self.assertEqual(d.validate(TARGET, LIVE)["refreshRate"], 165.0)

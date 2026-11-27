@@ -11,7 +11,13 @@ each monitor:
 - Scale per monitor
 - Text size for the whole desktop
 
-Settings persist as one-line rules in `~/.config/hypr/monitors.lua`.
+Settings persist as one-line rules in `~/.config/hypr/monitors.lua`, one per
+monitor. Rules name each monitor by its description (make, model and serial),
+such as `desc:BNQ BenQ EX240N ETT3R00580SL0`, not by its connector: connector
+names like `DP-1` can move to another monitor after a reboot or a replug. An
+older rule by connector name is folded into the description rule the next time
+you change that monitor. Twin monitors that report no serial stay named by
+connector, since their descriptions can't tell them apart.
 
 ## Screenshots
 

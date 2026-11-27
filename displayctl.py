@@ -5,6 +5,10 @@ Hyprland, and persists them as one-line rules in ~/.config/hypr/monitors.lua.
 Those rules use the format omarchy-hyprland-monitor-scaling edits in place, so
 the stock scale shortcuts keep working alongside this panel.
 
+Rules name a monitor by its description (make, model and serial) rather than
+its connector: connector names like DP-1 can move between monitors across
+boots or replugs, which would hand one monitor's rotation and mode to another.
+
 A refresh-rate change can leave a monitor black, so it is applied as a trial:
 it stays out of monitors.lua until kept, and a detached process restores the
 previous settings when the deadline passes, even if the shell has died.
@@ -25,6 +29,8 @@ TRIAL_SECONDS = 15
 NAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 MODE_RE = re.compile(r"^(\d+)x(\d+)@([\d.]+)Hz$")
 RULE_RE = re.compile(r"^hl\.monitor\(\{(.*)\}\)\s*(--.*)?$")
+# Descriptions go inside a Lua string, so refuse anything that could end it.
+DESC_RE = re.compile(r'^[^"\\\x00-\x1f\x7f]{1,128}$')
 FIELD_RE = re.compile(r'(\w+)\s*=\s*("[^"]*"|[^,\s}]+)')
 GDK_RE = re.compile(r"^local omarchy_gdk_scale = .*$", re.M)
 
@@ -61,7 +67,26 @@ def load_trial():
 
 def snapshot(monitor):
     return {key: monitor[key] for key in
-            ("name", "width", "height", "refreshRate", "x", "y", "scale", "transform")}
+            ("name", "description", "width", "height", "refreshRate", "x", "y", "scale",
+             "transform") if key in monitor}
+
+
+def description_of(monitor):
+    """The monitor's description if it's safe and specific enough to name it by."""
+    desc = str(monitor.get("description") or "").strip()
+    return desc if DESC_RE.match(desc) else ""
+
+
+def unique_description(monitor, live):
+    """The description to name a monitor by, or "" to fall back to its connector.
+
+    Twin monitors without serials share a description, which can't tell them
+    apart, so those stay named by connector.
+    """
+    desc = description_of(monitor)
+    if desc and sum(description_of(m) == desc for m in live) > 1:
+        return ""
+    return desc
 
 
 def validate(request, live):
@@ -88,14 +113,20 @@ def validate(request, live):
     if not (math.isfinite(scale) and 0.25 <= scale <= 4) or not 0 <= transform <= 7:
         raise ValueError(f"bad scale or transform for {name}")
 
-    return {"name": name, "width": width, "height": height, "refreshRate": rate,
+    return {"name": name, "description": unique_description(monitor, live),
+            "width": width, "height": height, "refreshRate": rate,
             "x": int(request["x"]), "y": int(request["y"]),
             "scale": scale, "transform": transform}
 
 
+def output_of(target):
+    desc = description_of(target)
+    return f"desc:{desc}" if desc else target["name"]
+
+
 def rule_fields(target):
     return {
-        "output": f'"{target["name"]}"',
+        "output": f'"{output_of(target)}"',
         "mode": f'"{target["width"]}x{target["height"]}@{target["refreshRate"]:.2f}"',
         "position": f'"{target["x"]}x{target["y"]}"',
         "scale": f'{target["scale"]:g}',
@@ -135,17 +166,28 @@ def update_rules(text, targets, gdk_scale=None):
     lines = text.split("\n")
     for target in targets:
         fields = rule_fields(target)
+        # A rule by connector name is the one Hyprland applies to this monitor
+        # right now, so it is folded into the rule by description.
+        outputs = {target["name"]}
+        if description_of(target):
+            outputs.add("desc:" + description_of(target))
+        pattern = re.compile(r'output\s*=\s*"(' + "|".join(map(re.escape, outputs)) + ')"')
         naming = [i for i, line in enumerate(lines)
-                  if not line.lstrip().startswith("--")
-                  and re.search(r'output\s*=\s*"' + re.escape(target["name"]) + '"', line)]
+                  if not line.lstrip().startswith("--") and pattern.search(line)]
         if naming:
-            index = naming[-1]
-            match = RULE_RE.match(lines[index])
-            if not match:
-                raise ValueError(f"monitors.lua: can't edit the rule for {target['name']}")
-            merged = {**dict(FIELD_RE.findall(match[1])), **fields}
-            comment = f"  {match[2]}" if match[2] else ""
-            lines[index] = render_rule(merged) + comment
+            merged, comment = {}, ""
+            for index in naming:
+                match = RULE_RE.match(lines[index])
+                if not match:
+                    raise ValueError(f"monitors.lua: can't edit the rule for {target['name']}")
+                merged.update(FIELD_RE.findall(match[1]))
+                if match[2]:
+                    comment = f"  {match[2]}"
+            # Two rules for one monitor would leave which one wins up to
+            # Hyprland, so keep a single rule where the last one was.
+            lines[naming[-1]] = render_rule({**merged, **fields}) + comment
+            for index in reversed(naming[:-1]):
+                del lines[index]
             continue
 
         rules = [i for i, line in enumerate(lines) if line.startswith("hl.monitor(")]
@@ -264,7 +306,8 @@ def cmd_apply(raw):
     if load_trial():
         raise RuntimeError("a refresh-rate change is already waiting for confirmation")
     token = uuid.uuid4().hex
-    previous = [snapshot(m) for m in live if not m.get("disabled")]
+    previous = [{**snapshot(m), "description": unique_description(m, live)}
+                for m in live if not m.get("disabled")]
     trial_path().write_text(json.dumps({
         "token": token,
         "deadline": time.time() + TRIAL_SECONDS,
