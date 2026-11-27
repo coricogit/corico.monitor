@@ -62,7 +62,10 @@ loads Omarchy's greeter config and then your layout, and points SDDM at it in
 `/etc/sddm.conf.d/20-corico-monitor.conf`. From then on, every change you keep
 in the panel is also written to `/var/lib/corico-monitor/greeter-monitors`. The
 login screen reads that file as plain data (`NAME WxH@RATE X Y SCALE
-TRANSFORM` per line) and ignores any line that doesn't match. Undo it with
+TRANSFORM [DESCRIPTION]` per line) and ignores any line that doesn't match.
+With a description it names the monitor by it, like the session rules do. If
+you installed it before 1.2.0, run `install.sh` again to get that; until then
+the panel keeps writing the older format, which still works. Undo it with
 `greeter/install.sh --uninstall`.
 
 ## Remove

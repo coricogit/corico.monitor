@@ -161,6 +161,28 @@ class Greeter(unittest.TestCase):
         finally:
             self.LIVE = saved
 
+    def test_adds_descriptions_when_the_greeter_reads_them(self):
+        import os, tempfile
+        live = [{**self.LIVE[0], "description": "BNQ BenQ EX240N ETT3R00580SL0"},
+                {**self.LIVE[1], "description": 'bad"desc'}]
+        with tempfile.NamedTemporaryFile("w", suffix=".lua") as config:
+            os.environ["DISPLAYCTL_GREETER_CONFIG"] = config.name
+            self.LIVE, saved = live, self.LIVE
+            try:
+                self.assertIn("DP-1 1920x1080@165.00 0 120 1 0\n", self.sync())  # old copy
+                config.write("-- corico-monitor-layout: 2\n")
+                config.flush()
+                self.assertEqual(self.sync(),
+                                 "DP-1 1920x1080@165.00 0 120 1 0 BNQ BenQ EX240N ETT3R00580SL0\n"
+                                 "DP-3 1920x1200@59.95 1920 0 1 0\n")
+            finally:
+                self.LIVE = saved
+                del os.environ["DISPLAYCTL_GREETER_CONFIG"]
+
+    def test_greeter_lua_carries_the_marker(self):
+        lua = (Path(__file__).parent.parent / "greeter/hyprland.lua").read_text()
+        self.assertIn("corico-monitor-layout: 2", lua)
+
     def test_skips_when_not_installed(self):
         import os
         os.environ["DISPLAYCTL_GREETER_LAYOUT"] = "/nonexistent-dir/greeter-monitors"

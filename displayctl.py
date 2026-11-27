@@ -40,6 +40,17 @@ def monitors_lua():
                                Path.home() / ".config/hypr/monitors.lua"))
 
 
+def greeter_config():
+    return Path(os.environ.get("DISPLAYCTL_GREETER_CONFIG", "/etc/sddm/corico-hyprland.lua"))
+
+
+def greeter_reads_descriptions():
+    try:
+        return "corico-monitor-layout: 2" in greeter_config().read_text()
+    except OSError:
+        return False
+
+
 def greeter_layout():
     return Path(os.environ.get("DISPLAYCTL_GREETER_LAYOUT",
                                "/var/lib/corico-monitor/greeter-monitors"))
@@ -223,11 +234,12 @@ def persist(targets, previous):
     os.replace(temp, path)
 
 
-def greeter_line(monitor):
-    """One line of the login screen layout: NAME WxH@RATE X Y SCALE TRANSFORM."""
+def greeter_line(monitor, desc=""):
+    """One line of the login screen layout: NAME WxH@RATE X Y SCALE TRANSFORM [DESC]."""
     return (f'{monitor["name"]} {int(monitor["width"])}x{int(monitor["height"])}'
             f'@{float(monitor["refreshRate"]):.2f} {int(monitor["x"])} {int(monitor["y"])}'
-            f' {float(monitor["scale"]):g} {int(monitor["transform"]) & 7}')
+            f' {float(monitor["scale"]):g} {int(monitor["transform"]) & 7}'
+            + (f" {desc}" if desc else ""))
 
 
 def sync_greeter(targets=(), live=None):
@@ -242,13 +254,15 @@ def sync_greeter(targets=(), live=None):
     if live is None:
         live = live_monitors()
     chosen = {t["name"]: t for t in targets}
+    with_desc = greeter_reads_descriptions()
     lines = []
     for monitor in live:
         if monitor.get("disabled"):
             continue
         merged = {**snapshot(monitor), **chosen.get(monitor["name"], {})}
         if NAME_RE.match(merged["name"]):
-            lines.append(greeter_line(merged))
+            desc = unique_description(monitor, live) if with_desc else ""
+            lines.append(greeter_line(merged, desc))
     fd, temp = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".")
     with os.fdopen(fd, "w") as handle:
         handle.write("\n".join(lines) + "\n")
