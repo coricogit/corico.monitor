@@ -68,6 +68,24 @@ you installed it before 1.2.0, run `install.sh` again to get that; until then
 the panel keeps writing the older format, which still works. Undo it with
 `greeter/install.sh --uninstall`.
 
+## Boot screens
+
+The disk unlock prompt and Plymouth's splash come up before any Hyprland, so
+they follow the kernel instead. To turn them the way your monitors are turned
+in the session:
+
+```bash
+~/.config/omarchy/plugins/corico.monitor/greeter/boot-rotation.sh
+```
+
+It reads each monitor's orientation from Hyprland, writes a
+`video=<connector>:panel_orientation=...` kernel parameter per monitor to
+`/etc/limine-entry-tool.d/corico-monitor-rotation.conf`, and rebuilds the boot
+image with `limine-mkinitcpio`. Run it again after rotating a monitor in the
+panel, and undo it with `--uninstall`. The kernel knows only connectors, so the
+rotation stays with the port if you swap cables, and it takes effect only where
+the GPU driver supports a panel orientation.
+
 ## Remove
 
 ```bash
