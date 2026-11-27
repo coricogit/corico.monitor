@@ -2,19 +2,21 @@
   "schemaVersion": 1,
   "id": "corico.monitor",
   "name": "Display",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "corico",
   "license": "MIT",
-  "description": "Per-monitor orientation, refresh rate, brightness and scale, text size, and drag-and-drop arrangement",
+  "description": "Per-monitor orientation, refresh rate, brightness and scale, text size, and drag-and-drop arrangement; windows, wallpaper and tablet follow each monitor's orientation",
   "kinds": [
+    "service",
     "bar-widget"
   ],
   "entryPoints": {
+    "service": "VerticalBackground.qml",
     "barWidget": "Panel.qml"
   },
   "barWidget": {
     "displayName": "Display",
-    "description": "Per-monitor orientation, refresh rate, brightness and scale, text size, and drag-and-drop arrangement",
+    "description": "Per-monitor orientation, refresh rate, brightness and scale, text size, and drag-and-drop arrangement; windows, wallpaper and tablet follow each monitor's orientation",
     "category": "System",
     "allowMultiple": false
   },

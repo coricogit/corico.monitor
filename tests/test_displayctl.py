@@ -49,6 +49,69 @@ class Rules(unittest.TestCase):
         self.assertEqual(d.gdk_scale_for([TARGET, {**TARGET, "scale": 2}]), 1)
 
 
+LANDSCAPE = {**TARGET, "name": "DP-3", "x": 1080, "transform": 0}
+WORKSPACE_RULE = ('hl.workspace_rule({ workspace = "m[DP-1]", '
+                  'layout_opts = { orientation = "top", direction = "down" } })')
+
+
+class Orientation(unittest.TestCase):
+    def test_vertical_monitor_gets_a_workspace_rule(self):
+        block = d.orientation_block([TARGET, LANDSCAPE], {})
+        self.assertEqual(block, [d.BLOCK_START, WORKSPACE_RULE, d.BLOCK_END])
+
+    def test_nothing_to_adapt_means_no_block(self):
+        self.assertEqual(d.orientation_block([LANDSCAPE], {}), [])
+        flipped = {**LANDSCAPE, "transform": 2}
+        self.assertEqual(d.orientation_block([flipped], {}), [])
+
+    def test_bound_inputs_follow_their_monitor(self):
+        flipped = {**LANDSCAPE, "transform": 2}
+        block = d.orientation_block([TARGET, flipped], {"tablet": "DP-1", "touchdevice": "DP-3"})
+        self.assertIn("hl.config({ input = { tablet = { transform = 1 } } })", block)
+        self.assertIn("hl.config({ input = { touchdevice = { transform = 2 } } })", block)
+
+    def test_input_on_upright_or_missing_monitor_is_left_alone(self):
+        block = d.orientation_block([TARGET, LANDSCAPE], {"tablet": "DP-3", "touchdevice": "HDMI-A-1"})
+        self.assertEqual(block, [d.BLOCK_START, WORKSPACE_RULE, d.BLOCK_END])
+
+    def test_block_goes_after_the_monitor_rules(self):
+        text = d.update_rules(STOCK, [TARGET])
+        lines = d.update_orientation_block(text, d.orientation_block([TARGET], {})).split("\n")
+        at = lines.index(d.BLOCK_START)
+        self.assertEqual(lines[at - 1], RULE)
+        self.assertEqual(lines[at + 1], WORKSPACE_RULE)
+
+    def test_block_is_replaced_in_place_and_removed(self):
+        text = d.update_rules(STOCK, [TARGET])
+        once = d.update_orientation_block(text, d.orientation_block([TARGET], {}))
+        twice = d.update_orientation_block(once, d.orientation_block([TARGET], {}))
+        self.assertEqual(once, twice)
+        self.assertEqual(d.update_orientation_block(once, []), text)
+
+    def test_new_monitor_rule_lands_before_the_block(self):
+        text = d.update_orientation_block(d.update_rules(STOCK, [TARGET]),
+                                          d.orientation_block([TARGET], {}))
+        lines = d.update_rules(text, [LANDSCAPE]).split("\n")
+        self.assertLess(next(i for i, l in enumerate(lines) if 'output = "DP-3"' in l),
+                        lines.index(d.BLOCK_START))
+
+    def test_persist_writes_the_block(self):
+        import os
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "monitors.lua"
+            path.write_text(STOCK)
+            os.environ["DISPLAYCTL_MONITORS_LUA"] = str(path)
+            try:
+                d.persist([TARGET], [TARGET], inputs={})
+                self.assertIn(WORKSPACE_RULE, path.read_text())
+                d.persist([{**TARGET, "transform": 0}], [TARGET], inputs={})
+                self.assertNotIn(d.BLOCK_START, path.read_text())
+                self.assertIn("omarchy_gdk_scale = 2", path.read_text())
+            finally:
+                del os.environ["DISPLAYCTL_MONITORS_LUA"]
+
+
 BENQ = "BNQ BenQ EX240N ETT3R00580SL0"
 HP = "Hewlett Packard HP Z24i CNK4490MRG"
 NAMED = {**TARGET, "description": BENQ}

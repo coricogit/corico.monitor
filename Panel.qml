@@ -65,6 +65,11 @@ Panel {
     { transform: 3, label: strings.t("orientation.verticalLeft") }
   ]
   readonly property var refreshRates: Model.refreshRates(selectedDisplay)
+
+  // Portrait wallpapers for VerticalBackground.qml, as the backend found them.
+  property string verticalBackgroundsFolder: ""
+  property int verticalBackgroundCount: 0
+  readonly property bool selectedVertical: selectedDisplay !== null && selectedDisplay.transform % 2 === 1
   readonly property var scalePresets: ["1", "1.25", "1.6", "2", "3", "4"]
   readonly property var scaleValues: selectedDisplay
     ? Model.availableScales(scalePresets, selectedDisplay.width, selectedDisplay.height)
@@ -251,6 +256,9 @@ Panel {
     }
     root.trialDeadline = Number(state.trialDeadline) || 0
     root.updateTrialSeconds()
+    var vertical = state.verticalBackgrounds || {}
+    root.verticalBackgroundsFolder = String(vertical.folder || "").slice(0, 300)
+    root.verticalBackgroundCount = Number(vertical.count) || 0
 
     // A drag holds the tiles, and an unchanged list needs no rebuild.
     var json = JSON.stringify(state.monitors)
@@ -889,6 +897,18 @@ Panel {
                     onClicked: root.setOrientation(modelData.transform)
                   }
                 }
+              }
+
+              Text {
+                visible: root.selectedVertical && root.verticalBackgroundCount === 0
+                         && root.verticalBackgroundsFolder !== ""
+                textFormat: Text.PlainText
+                text: strings.t("orientation.verticalBackgroundHint").arg(root.verticalBackgroundsFolder)
+                color: Qt.darker(root.bar.foreground, 1.4)
+                font.family: root.bar.fontFamily
+                font.pixelSize: Style.font.caption
+                wrapMode: Text.WrapAnywhere
+                width: parent.width
               }
             }
 
